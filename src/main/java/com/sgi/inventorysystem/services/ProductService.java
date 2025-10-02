@@ -148,11 +148,33 @@ public class ProductService {
     }
 
     public boolean deleteProduct(String id) {
-        if (productRepository.existsById(id)) {
-            productRepository.deleteById(id);
-            return true;
+        Optional<Product> productOpt = productRepository.findById(id);
+        if (productOpt.isEmpty()) return false;
+
+        String productId = id;
+
+        // 1. Delete all weights linked to this product
+        List<ProductWeight> weights = productWeightRepository.findByProductId(productId);
+        if (!weights.isEmpty()) {
+            productWeightRepository.deleteAll(weights);
         }
-        return false;
+
+        // 2. Delete all entries linked to this product
+        List<ProductEntry> entries = productEntryRepository.findByProductId(productId);
+        if (!entries.isEmpty()) {
+            productEntryRepository.deleteAll(entries);
+        }
+
+        // 3. Delete all exits linked to this product
+        List<ProductExit> exits = productExitRepository.findByProductId(productId);
+        if (!exits.isEmpty()) {
+            productExitRepository.deleteAll(exits);
+        }
+
+        // 4. Finally delete the product
+        productRepository.deleteById(productId);
+
+        return true;
     }
 
     // --- Crear o recuperar producto desde template ---

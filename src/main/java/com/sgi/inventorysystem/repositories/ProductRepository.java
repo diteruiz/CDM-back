@@ -3,7 +3,6 @@ package com.sgi.inventorysystem.repositories;
 import com.sgi.inventorysystem.models.Product;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
 @Repository
