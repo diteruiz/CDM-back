@@ -53,22 +53,17 @@ public class SaleController {
         return ResponseEntity.ok(saleService.createSale(sale));
     }
 
-    // 👇 Updated: now saves both returnWeight and returnBarrels
-    @PreAuthorize("hasAnyRole('ADMIN','USER')")
-    @PutMapping("/{id}/return")
-    public ResponseEntity<Sale> updateReturn(@PathVariable String id, @RequestBody Sale payload) {
-        Sale updated = saleService.updateReturn(
-                id,
-                payload.getReturnWeight(),
-                payload.getReturnBarrels()
-        );
-        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
-    }
-
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PutMapping("/{id}")
     public ResponseEntity<Sale> updateSale(@PathVariable String id, @RequestBody Sale payload) {
-        Sale updated = saleService.updateSale(id, payload.getProductName(), payload.getSentWeight());
+        Sale updated = saleService.updateSale(
+                id,
+                payload.getProductName(),
+                payload.getSentWeight(),
+                payload.getReturnWeight(),
+                payload.getBarrels(),
+                payload.getReturnBarrels()
+        );
         return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
     }
 

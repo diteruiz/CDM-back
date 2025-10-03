@@ -4,6 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Document(collection = "sales")
@@ -17,13 +18,12 @@ public class Sale {
     private double returnWeight = 0;
     private LocalDate date = LocalDate.now();
 
-    // 👇 New: list of barrels sent (each barrel weight in KG)
-    private List<Double> barrels;
+    // 👇 Initialize with empty lists to avoid null issues
+    private List<Double> barrels = new ArrayList<>();
 
-    // 👇 New: list of barrels returned (each barrel weight in KG)
-    private List<Double> returnBarrels;
+    private List<Double> returnBarrels = new ArrayList<>();
 
-    // Getters & Setters
+    // --- Getters & Setters ---
     public String getId() {
         return id;
     }
@@ -70,18 +70,19 @@ public class Sale {
         return barrels;
     }
     public void setBarrels(List<Double> barrels) {
-        this.barrels = barrels;
+        this.barrels = (barrels != null) ? barrels : new ArrayList<>();
     }
 
     public List<Double> getReturnBarrels() {
         return returnBarrels;
     }
     public void setReturnBarrels(List<Double> returnBarrels) {
-        this.returnBarrels = returnBarrels;
+        this.returnBarrels = (returnBarrels != null) ? returnBarrels : new ArrayList<>();
     }
 
-    // Helpers
+    // --- Helpers ---
     public double getSoldWeight() {
-        return sentWeight - returnWeight;
+        double sold = sentWeight - returnWeight;
+        return sold >= 0 ? sold : 0; // never negative
     }
 }

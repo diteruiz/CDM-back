@@ -40,11 +40,19 @@ public class SaleService {
         return saleRepository.findById(id);
     }
 
-    // 👇 Updated: now supports returnBarrels
-    public Sale updateReturn(String id, double returnWeight, List<Double> returnBarrels) {
+    // ✅ Updated: full update (replace all fields, including arrays)
+    public Sale updateSale(String id,
+                           String productName,
+                           double sentWeight,
+                           double returnWeight,
+                           List<Double> barrels,
+                           List<Double> returnBarrels) {
         Optional<Sale> optSale = saleRepository.findById(id);
         if (optSale.isPresent()) {
             Sale sale = optSale.get();
+
+            sale.setProductName(productName);
+            sale.setSentWeight(sentWeight >= 0 ? sentWeight : 0);
 
             if (returnWeight < 0) {
                 returnWeight = 0;
@@ -52,21 +60,12 @@ public class SaleService {
             if (returnWeight > sale.getSentWeight()) {
                 returnWeight = sale.getSentWeight();
             }
-
             sale.setReturnWeight(returnWeight);
-            sale.setReturnBarrels(returnBarrels);
 
-            return saleRepository.save(sale);
-        }
-        return null;
-    }
+            // 👉 Replace arrays instead of merging
+            sale.setBarrels(barrels != null ? barrels : List.of());
+            sale.setReturnBarrels(returnBarrels != null ? returnBarrels : List.of());
 
-    public Sale updateSale(String id, String productName, double sentWeight) {
-        Optional<Sale> optSale = saleRepository.findById(id);
-        if (optSale.isPresent()) {
-            Sale sale = optSale.get();
-            sale.setProductName(productName);
-            sale.setSentWeight(sentWeight >= 0 ? sentWeight : 0);
             return saleRepository.save(sale);
         }
         return null;
