@@ -1,4 +1,3 @@
-// src/main/java/com/sgi/inventorysystem/controllers/SaleController.java
 package com.sgi.inventorysystem.controllers;
 
 import com.sgi.inventorysystem.models.Sale;
@@ -54,10 +53,15 @@ public class SaleController {
         return ResponseEntity.ok(saleService.createSale(sale));
     }
 
+    // 👇 Updated: now saves both returnWeight and returnBarrels
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PutMapping("/{id}/return")
     public ResponseEntity<Sale> updateReturn(@PathVariable String id, @RequestBody Sale payload) {
-        Sale updated = saleService.updateReturn(id, payload.getReturnWeight());
+        Sale updated = saleService.updateReturn(
+                id,
+                payload.getReturnWeight(),
+                payload.getReturnBarrels()
+        );
         return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
     }
 

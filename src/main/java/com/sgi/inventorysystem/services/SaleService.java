@@ -1,4 +1,3 @@
-// src/main/java/com/sgi/inventorysystem/services/SaleService.java
 package com.sgi.inventorysystem.services;
 
 import com.sgi.inventorysystem.models.Sale;
@@ -26,7 +25,7 @@ public class SaleService {
 
     public Sale createSale(Sale sale) {
         if (sale.getDate() == null) {
-            sale.setDate(LocalDate.now()); // 👈 ahora guarda solo la fecha
+            sale.setDate(LocalDate.now());
         }
         if (sale.getSentWeight() < 0) {
             sale.setSentWeight(0);
@@ -41,17 +40,22 @@ public class SaleService {
         return saleRepository.findById(id);
     }
 
-    public Sale updateReturn(String id, double returnWeight) {
+    // 👇 Updated: now supports returnBarrels
+    public Sale updateReturn(String id, double returnWeight, List<Double> returnBarrels) {
         Optional<Sale> optSale = saleRepository.findById(id);
         if (optSale.isPresent()) {
             Sale sale = optSale.get();
+
             if (returnWeight < 0) {
                 returnWeight = 0;
             }
             if (returnWeight > sale.getSentWeight()) {
                 returnWeight = sale.getSentWeight();
             }
+
             sale.setReturnWeight(returnWeight);
+            sale.setReturnBarrels(returnBarrels);
+
             return saleRepository.save(sale);
         }
         return null;

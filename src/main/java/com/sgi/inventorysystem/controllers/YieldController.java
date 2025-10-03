@@ -19,7 +19,7 @@ public class YieldController {
     @Autowired
     private YieldService yieldService;
 
-    // Obtener todos los yields de un usuario (opcionalmente filtrados por fecha)
+    // ✅ Obtener yields (por fecha opcional)
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @GetMapping
     public ResponseEntity<List<Yield>> getYields(
@@ -34,19 +34,22 @@ public class YieldController {
         }
     }
 
-    // Crear nuevo yield
+    // ✅ Crear nuevo yield
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PostMapping
     public ResponseEntity<Yield> createYield(@RequestBody Yield yield, Principal principal) {
-        String userId = principal.getName();
-        yield.setUserId(userId);
+        yield.setUserId(principal.getName());
         return ResponseEntity.ok(yieldService.saveYield(yield));
     }
 
-    // Actualizar yield existente
+    // ✅ Actualizar yield existente
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PutMapping("/{id}")
-    public ResponseEntity<Yield> updateYield(@PathVariable String id, @RequestBody Yield updatedYield, Principal principal) {
+    public ResponseEntity<Yield> updateYield(
+            @PathVariable String id,
+            @RequestBody Yield updatedYield,
+            Principal principal
+    ) {
         Optional<Yield> existing = yieldService.getYieldById(id);
         if (existing.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -57,17 +60,23 @@ public class YieldController {
             return ResponseEntity.status(403).build();
         }
 
+        // Actualizamos todos los campos, incluido productName
+        yield.setProductName(updatedYield.getProductName());
         yield.setDate(updatedYield.getDate());
         yield.setBaseWeight(updatedYield.getBaseWeight());
         yield.setBoxes(updatedYield.getBoxes());
         yield.setTotalBase(updatedYield.getTotalBase());
         yield.setTotalObtained(updatedYield.getTotalObtained());
-        yield.setRendimiento(updatedYield.getRendimiento());
+        yield.setWeightDifference(updatedYield.getWeightDifference());
+        yield.setYieldRatio(updatedYield.getYieldRatio());
+        yield.setMode(updatedYield.getMode());
+        yield.setBoxWeights(updatedYield.getBoxWeights());
+        yield.setBarrels(updatedYield.getBarrels());
 
         return ResponseEntity.ok(yieldService.saveYield(yield));
     }
 
-    // Eliminar yield
+    // ✅ Eliminar yield
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteYield(@PathVariable String id, Principal principal) {

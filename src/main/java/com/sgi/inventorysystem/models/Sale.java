@@ -1,10 +1,10 @@
-// src/main/java/com/sgi/inventorysystem/models/Sale.java
 package com.sgi.inventorysystem.models;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Document(collection = "sales")
 public class Sale {
@@ -15,7 +15,13 @@ public class Sale {
     private String productName;
     private double sentWeight;
     private double returnWeight = 0;
-    private LocalDate date = LocalDate.now(); // 👈 solo fecha
+    private LocalDate date = LocalDate.now();
+
+    // 👇 New: list of barrels sent (each barrel weight in KG)
+    private List<Double> barrels;
+
+    // 👇 New: list of barrels returned (each barrel weight in KG)
+    private List<Double> returnBarrels;
 
     // Getters & Setters
     public String getId() {
@@ -58,6 +64,20 @@ public class Sale {
     }
     public void setDate(LocalDate date) {
         this.date = date;
+    }
+
+    public List<Double> getBarrels() {
+        return barrels;
+    }
+    public void setBarrels(List<Double> barrels) {
+        this.barrels = barrels;
+    }
+
+    public List<Double> getReturnBarrels() {
+        return returnBarrels;
+    }
+    public void setReturnBarrels(List<Double> returnBarrels) {
+        this.returnBarrels = returnBarrels;
     }
 
     // Helpers
