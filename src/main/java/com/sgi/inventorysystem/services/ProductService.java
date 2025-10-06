@@ -5,6 +5,8 @@ import com.sgi.inventorysystem.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -245,7 +247,7 @@ public class ProductService {
         entry.setNotes(notes);
         entry.setLocation(loc);
 
-        // Proveedor
+        // Supplier
         if (supplierId != null && !supplierId.isBlank()) {
             entry.setSupplierId(supplierId);
             supplierRepository.findById(supplierId)
@@ -260,7 +262,7 @@ public class ProductService {
             }
         }
 
-        // Modo promedio
+        // Mode average weight
         if (quantity > 0 && averageWeight != null && totalWeight != null) {
             List<ProductWeight> createdWeights = new ArrayList<>();
             for (int i = 0; i < quantity; i++) {
@@ -280,7 +282,7 @@ public class ProductService {
             return productEntryRepository.save(entry);
         }
 
-        // Modo peso fijo
+        // Mode fixed weight
         if (product.isHasBaseWeight()) {
             List<ProductWeight> createdWeights = new ArrayList<>();
             for (int i = 0; i < quantity; i++) {
@@ -300,7 +302,7 @@ public class ProductService {
             return productEntryRepository.save(entry);
         }
 
-        // Modo caja por caja
+        // Mode box by box
         if (weights != null && !weights.isEmpty()) {
             List<ProductWeight> createdWeights = new ArrayList<>();
             for (Double w : weights) {
@@ -462,6 +464,30 @@ public class ProductService {
         return false;
     }
 
+    // --- 🔹 NEW: Entries by Date ---
+    public List<ProductEntry> getEntriesByDate(String userId, String location, String dateStr) {
+        LocalDate date = LocalDate.parse(dateStr); // yyyy-MM-dd
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.plusDays(1).atStartOfDay();
+
+        if (location != null && !location.isBlank()) {
+            return productEntryRepository.findByUserIdAndLocationAndEnteredAtBetween(userId, location, start, end);
+        }
+        return productEntryRepository.findByUserIdAndEnteredAtBetween(userId, start, end);
+    }
+
+    // --- 🔹 NEW: Exits by Date ---
+    public List<ProductExit> getExitsByDate(String userId, String location, String dateStr) {
+        LocalDate date = LocalDate.parse(dateStr);
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.plusDays(1).atStartOfDay();
+
+        if (location != null && !location.isBlank()) {
+            return productExitRepository.findByUserIdAndLocationAndExitedAtBetween(userId, location, start, end);
+        }
+        return productExitRepository.findByUserIdAndExitedAtBetween(userId, start, end);
+    }
+
     public boolean clearInventory(String productId, String userId, String location) {
         String loc = norm(location);
         List<ProductEntry> entries = getEntries(userId, loc)
@@ -593,7 +619,7 @@ public class ProductService {
         public void setTotalWeight(double totalWeight) { this.totalWeight = totalWeight; }
     }
 
-    // --- NUEVO DTO: resumen por location ---
+    // --- DTO: resumen por location ---
     public static class LocationSummary {
         private String location;
         private Totals totals;
@@ -610,7 +636,7 @@ public class ProductService {
         public List<ProductSummary> getProducts() { return products; }
     }
 
-    // --- NUEVO método: inventario resumido por locations ---
+    // --- Inventory summary for all locations ---
     public Map<String, LocationSummary> getInventorySummary(String userId, List<String> locations) {
         Map<String, LocationSummary> result = new LinkedHashMap<>();
 
