@@ -230,7 +230,8 @@ public class ProductService {
             String userId,
             String notes,
             String location,
-            String supplierId
+            String supplierId,
+            Date customDate // 👈 nuevo parámetro opcional
     ) {
         String loc = norm(location);
         if (templateId == null) return null;
@@ -243,7 +244,10 @@ public class ProductService {
         entry.setProductName(product.getName());
         entry.setBrandId(product.getBrandId());
         entry.setUserId(userId);
-        entry.setEnteredAt(new Date());
+
+        // 👇 usar la fecha enviada o la actual
+        entry.setEnteredAt(customDate != null ? customDate : new Date());
+
         entry.setNotes(notes);
         entry.setLocation(loc);
 
@@ -333,7 +337,8 @@ public class ProductService {
             List<String> weightIds,
             String userId,
             String notes,
-            String location
+            String location,
+            Date customDate // 👈 nuevo parámetro opcional
     ) {
         String loc = norm(location);
         if (productId == null) return null;
@@ -347,7 +352,10 @@ public class ProductService {
         exit.setProductName(product.getName());
         exit.setBrandId(product.getBrandId());
         exit.setUserId(userId);
-        exit.setExitedAt(new Date());
+
+        // 👇 usar la fecha enviada o la actual
+        exit.setExitedAt(customDate != null ? customDate : new Date());
+
         exit.setNotes(notes);
         exit.setLocation(loc);
 

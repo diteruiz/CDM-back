@@ -22,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @RestController
@@ -54,6 +56,17 @@ public class ProductController {
     // 🔹 Helper: normalize strings
     private static String normalize(String s) {
         return (s == null) ? null : s.trim().toLowerCase();
+    }
+
+    // 🔹 Helper: parse date (yyyy-MM-dd)
+    private static Date parseDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) return null;
+        try {
+            LocalDate ld = LocalDate.parse(dateStr);
+            return java.sql.Timestamp.valueOf(ld.atStartOfDay());
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     // --- Totals for Dashboard ---
@@ -190,16 +203,44 @@ public class ProductController {
     public ResponseEntity<ProductEntry> registerEntry(
             @RequestBody Map<String, Object> body,
             @RequestParam(required = false) String location) {
-        // ... (igual que antes, sin cambios)
-        // tu lógica de crear entry se queda igual
-        return ResponseEntity.ok().build(); // placeholder
+
+        String userId = getUserId();
+
+        String templateId = (String) body.get("templateId");
+        Integer quantity = (body.get("quantity") != null) ? ((Number) body.get("quantity")).intValue() : 0;
+        List<String> weightIds = (List<String>) body.getOrDefault("weightIds", new ArrayList<>());
+        List<Double> weights = (List<Double>) body.getOrDefault("weights", new ArrayList<>());
+        Double averageWeight = body.get("averageWeight") != null ? ((Number) body.get("averageWeight")).doubleValue() : null;
+        Double totalWeight = body.get("totalWeight") != null ? ((Number) body.get("totalWeight")).doubleValue() : null;
+        String notes = (String) body.get("notes");
+        String supplierId = (String) body.get("supplierId");
+        Date customDate = parseDate((String) body.get("date")); // 👈 nuevo
+
+        ProductEntry entry = productService.registerEntry(
+                templateId,
+                quantity,
+                weightIds,
+                weights,
+                averageWeight,
+                totalWeight,
+                userId,
+                notes,
+                location,
+                supplierId,
+                customDate // 👈 nuevo
+        );
+
+        if (entry == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(entry);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/entries")
     public ResponseEntity<List<ProductEntry>> getEntries(
             @RequestParam(required = false) String location,
-            @RequestParam(required = false) String date) { // 👈 now supports date
+            @RequestParam(required = false) String date) {
         String loc = normalize(location);
         List<ProductEntry> entries;
         if (date != null && !date.isBlank()) {
@@ -226,19 +267,41 @@ public class ProductController {
     // --- Exits ---
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping("/exit/{productId}")
-    public ResponseEntity<?> registerExit(
+    public ResponseEntity<ProductExit> registerExit(
             @PathVariable String productId,
             @RequestBody Map<String, Object> body,
             @RequestParam(required = false) String location) {
-        // ... (igual que antes, tu lógica exit no cambia)
-        return ResponseEntity.ok().build(); // placeholder
+
+        String userId = getUserId();
+
+        Integer quantity = (body.get("quantity") != null) ? ((Number) body.get("quantity")).intValue() : 0;
+        Double manualWeight = body.get("manualWeight") != null ? ((Number) body.get("manualWeight")).doubleValue() : null;
+        List<String> weightIds = (List<String>) body.getOrDefault("weightIds", new ArrayList<>());
+        String notes = (String) body.get("notes");
+        Date customDate = parseDate((String) body.get("date")); // 👈 nuevo
+
+        ProductExit exit = productService.registerExit(
+                productId,
+                manualWeight,
+                quantity,
+                weightIds,
+                userId,
+                notes,
+                location,
+                customDate // 👈 nuevo
+        );
+
+        if (exit == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(exit);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/exits")
     public ResponseEntity<List<ProductExit>> getExits(
             @RequestParam(required = false) String location,
-            @RequestParam(required = false) String date) { // 👈 now supports date
+            @RequestParam(required = false) String date) {
         String loc = normalize(location);
         List<ProductExit> exits;
         if (date != null && !date.isBlank()) {
