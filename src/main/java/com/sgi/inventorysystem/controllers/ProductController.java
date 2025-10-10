@@ -171,7 +171,6 @@ public class ProductController {
         boolean deleted = productService.deleteProduct(id);
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
-
     // --- Excel Export ---
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/export")
@@ -209,7 +208,11 @@ public class ProductController {
         String templateId = (String) body.get("templateId");
         Integer quantity = (body.get("quantity") != null) ? ((Number) body.get("quantity")).intValue() : 0;
         List<String> weightIds = (List<String>) body.getOrDefault("weightIds", new ArrayList<>());
-        List<Double> weights = (List<Double>) body.getOrDefault("weights", new ArrayList<>());
+
+        // ✅ Fix: usar Number en lugar de Double
+        @SuppressWarnings("unchecked")
+        List<Number> weights = (List<Number>) body.getOrDefault("weights", new ArrayList<>());
+
         Double averageWeight = body.get("averageWeight") != null ? ((Number) body.get("averageWeight")).doubleValue() : null;
         Double totalWeight = body.get("totalWeight") != null ? ((Number) body.get("totalWeight")).doubleValue() : null;
         String notes = (String) body.get("notes");
@@ -220,7 +223,7 @@ public class ProductController {
                 templateId,
                 quantity,
                 weightIds,
-                weights,
+                weights,   // 👈 ahora encaja con ProductService
                 averageWeight,
                 totalWeight,
                 userId,

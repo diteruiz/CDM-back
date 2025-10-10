@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -30,7 +31,7 @@ public class ProductService {
     @Autowired
     private SupplierRepository supplierRepository;
 
-    // 🔹 Helper para normalizar location
+    // 🔹 Helper to normalize location
     private static String norm(String s) {
         return (s == null) ? null : s.trim().toLowerCase();
     }
@@ -51,6 +52,7 @@ public class ProductService {
             long boxes = remaining.size();
             double weight = remaining.stream().mapToDouble(ProductWeight::getWeight).sum();
 
+            // Fixed-weight fallback if there are no loose weights left
             if (p.isHasBaseWeight() && boxes == 0) {
                 long entries = productEntryRepository.findByUserIdAndLocation(userId, loc)
                         .stream()
@@ -117,7 +119,7 @@ public class ProductService {
             supplierRepository.findById(product.getSupplierId())
                     .ifPresent(s -> product.setSupplierName(s.getName()));
         }
-        product.setLocation(norm(product.getLocation())); // ✅ normalizar
+        product.setLocation(norm(product.getLocation())); // ✅ normalize
         product.setCreatedAt(new Date());
         product.setUpdatedAt(new Date());
         return productRepository.save(product);
@@ -141,7 +143,7 @@ public class ProductService {
             existing.setHasBaseWeight(updatedProduct.isHasBaseWeight());
 
             if (updatedProduct.getLocation() != null) {
-                existing.setLocation(norm(updatedProduct.getLocation())); // ✅ normalizar
+                existing.setLocation(norm(updatedProduct.getLocation())); // ✅ normalize
             }
 
             existing.setUpdatedAt(new Date());
@@ -179,7 +181,7 @@ public class ProductService {
         return true;
     }
 
-    // --- Crear o recuperar producto desde template ---
+    // --- Create or recover product from template ---
     public Product getOrCreateFromTemplate(String templateId, String userId, String location) {
         String loc = norm(location);
         Optional<ProductTemplate> templateOpt = productTemplateRepository.findById(templateId);
@@ -213,25 +215,26 @@ public class ProductService {
         newProduct.setFixedWeight(template.getFixedWeight());
         newProduct.setHasBaseWeight(template.isHasBaseWeight());
         newProduct.setUserId(userId);
-        newProduct.setLocation(loc); // ✅ normalizar
+        newProduct.setLocation(loc); // ✅ normalize
         newProduct.setCreatedAt(new Date());
         newProduct.setUpdatedAt(new Date());
 
         return productRepository.save(newProduct);
     }
+
     // --- Entries ---
     public ProductEntry registerEntry(
             String templateId,
             int quantity,
             List<String> weightIds,
-            List<Double> weights,
+            List<Number> weights,      // ✅ accept Integer or Double to avoid Jackson cast issues
             Double averageWeight,
             Double totalWeight,
             String userId,
             String notes,
             String location,
             String supplierId,
-            Date customDate // 👈 nuevo parámetro opcional
+            Date customDate
     ) {
         String loc = norm(location);
         if (templateId == null) return null;
@@ -245,7 +248,7 @@ public class ProductService {
         entry.setBrandId(product.getBrandId());
         entry.setUserId(userId);
 
-        // 👇 usar la fecha enviada o la actual
+        // 👇 Use provided date or current
         entry.setEnteredAt(customDate != null ? customDate : new Date());
 
         entry.setNotes(notes);
@@ -308,8 +311,14 @@ public class ProductService {
 
         // Mode box by box
         if (weights != null && !weights.isEmpty()) {
+            // 🔹 Convert safely to Double to avoid ClassCastException (Integer → Double)
+            List<Double> safeWeights = weights.stream()
+                    .filter(Objects::nonNull)
+                    .map(Number::doubleValue)
+                    .collect(Collectors.toList());
+
             List<ProductWeight> createdWeights = new ArrayList<>();
-            for (Double w : weights) {
+            for (Double w : safeWeights) {
                 ProductWeight pw = new ProductWeight();
                 pw.setProductId(product.getId());
                 pw.setUserId(userId);
@@ -321,14 +330,13 @@ public class ProductService {
             List<String> ids = createdWeights.stream().map(ProductWeight::getId).toList();
 
             entry.setQuantityEntered(createdWeights.size());
-            entry.setTotalWeight(weights.stream().mapToDouble(Double::doubleValue).sum());
+            entry.setTotalWeight(safeWeights.stream().mapToDouble(Double::doubleValue).sum());
             entry.setWeightIds(ids);
             return productEntryRepository.save(entry);
         }
 
         return null;
     }
-
     // --- Exits ---
     public ProductExit registerExit(
             String productId,
@@ -338,7 +346,7 @@ public class ProductService {
             String userId,
             String notes,
             String location,
-            Date customDate // 👈 nuevo parámetro opcional
+            Date customDate // optional parameter
     ) {
         String loc = norm(location);
         if (productId == null) return null;
@@ -353,7 +361,7 @@ public class ProductService {
         exit.setBrandId(product.getBrandId());
         exit.setUserId(userId);
 
-        // 👇 usar la fecha enviada o la actual
+        // 👇 use provided date or current
         exit.setExitedAt(customDate != null ? customDate : new Date());
 
         exit.setNotes(notes);
@@ -472,7 +480,7 @@ public class ProductService {
         return false;
     }
 
-    // --- 🔹 NEW: Entries by Date ---
+    // --- NEW: Entries by Date ---
     public List<ProductEntry> getEntriesByDate(String userId, String location, String dateStr) {
         LocalDate date = LocalDate.parse(dateStr); // yyyy-MM-dd
         LocalDateTime start = date.atStartOfDay();
@@ -484,7 +492,7 @@ public class ProductService {
         return productEntryRepository.findByUserIdAndEnteredAtBetween(userId, start, end);
     }
 
-    // --- 🔹 NEW: Exits by Date ---
+    // --- NEW: Exits by Date ---
     public List<ProductExit> getExitsByDate(String userId, String location, String dateStr) {
         LocalDate date = LocalDate.parse(dateStr);
         LocalDateTime start = date.atStartOfDay();
@@ -568,7 +576,7 @@ public class ProductService {
                         p.getSupplierId(),
                         supplierName,
                         p.getCategoryId(),
-                        null, // categoryName se llena en el controller
+                        null, // categoryName is filled in controller
                         totalBoxes,
                         totalWeight
                 ));
@@ -578,7 +586,7 @@ public class ProductService {
         return summaries;
     }
 
-    // --- DTO interno con category añadido ---
+    // --- DTO with category added ---
     public static class ProductSummary {
         private String productId;
         private String name;
@@ -605,7 +613,7 @@ public class ProductService {
             this.totalWeight = totalWeight;
         }
 
-        // Getters & setters ...
+        // Getters & setters
         public String getProductId() { return productId; }
         public String getName() { return name; }
         public String getBrandId() { return brandId; }
@@ -627,7 +635,7 @@ public class ProductService {
         public void setTotalWeight(double totalWeight) { this.totalWeight = totalWeight; }
     }
 
-    // --- DTO: resumen por location ---
+    // --- DTO: summary by location ---
     public static class LocationSummary {
         private String location;
         private Totals totals;
