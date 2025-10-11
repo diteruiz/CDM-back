@@ -4,6 +4,8 @@ import com.sgi.inventorysystem.models.Product;
 import com.sgi.inventorysystem.models.Brand;
 import com.sgi.inventorysystem.models.Category;
 import com.sgi.inventorysystem.models.Supplier;
+import com.sgi.inventorysystem.models.ProductEntry;
+import com.sgi.inventorysystem.models.ProductWeight;
 import com.sgi.inventorysystem.repositories.ProductRepository;
 import com.sgi.inventorysystem.repositories.BrandRepository;
 import com.sgi.inventorysystem.repositories.CategoryRepository;
@@ -147,6 +149,41 @@ public class ExcelExportService {
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(supplier.getId());
                 row.createCell(1).setCellValue(supplier.getName());
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        }
+    }
+
+    // ✅ Export weights of a specific ProductEntry
+    public ByteArrayInputStream exportEntryWeightsToExcel(
+            ProductEntry entry,
+            List<ProductWeight> weights,
+            Brand brand,
+            Supplier supplier
+    ) throws IOException {
+
+        String[] columns = {"Product Name", "Brand", "Supplier", "Weight (kg)", "Date", "Location"};
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Entry Weights");
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < columns.length; i++) {
+                headerRow.createCell(i).setCellValue(columns[i]);
+            }
+
+            int rowIdx = 1;
+
+            for (ProductWeight pw : weights) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(entry.getProductName() != null ? entry.getProductName() : "N/A");
+                row.createCell(1).setCellValue(brand != null ? brand.getName() : "N/A");
+                row.createCell(2).setCellValue(supplier != null ? supplier.getName() : "N/A");
+                row.createCell(3).setCellValue(pw.getWeight() != null ? pw.getWeight() : 0.0);
+                row.createCell(4).setCellValue(entry.getEnteredAt() != null ? entry.getEnteredAt().toString() : "");
+                row.createCell(5).setCellValue(entry.getLocation() != null ? entry.getLocation() : "");
             }
 
             workbook.write(out);

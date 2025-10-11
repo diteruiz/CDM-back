@@ -5,6 +5,7 @@ import com.sgi.inventorysystem.models.ProductEntry;
 import com.sgi.inventorysystem.models.ProductExit;
 import com.sgi.inventorysystem.models.ProductWeight;
 import com.sgi.inventorysystem.models.Supplier;
+import com.sgi.inventorysystem.models.Brand;
 import com.sgi.inventorysystem.repositories.SupplierRepository;
 import com.sgi.inventorysystem.repositories.ProductWeightRepository;
 import com.sgi.inventorysystem.repositories.CategoryRepository;
@@ -171,6 +172,7 @@ public class ProductController {
         boolean deleted = productService.deleteProduct(id);
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
+
     // --- Excel Export ---
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/export")
@@ -209,7 +211,6 @@ public class ProductController {
         Integer quantity = (body.get("quantity") != null) ? ((Number) body.get("quantity")).intValue() : 0;
         List<String> weightIds = (List<String>) body.getOrDefault("weightIds", new ArrayList<>());
 
-        // ✅ Fix: usar Number en lugar de Double
         @SuppressWarnings("unchecked")
         List<Number> weights = (List<Number>) body.getOrDefault("weights", new ArrayList<>());
 
@@ -217,20 +218,20 @@ public class ProductController {
         Double totalWeight = body.get("totalWeight") != null ? ((Number) body.get("totalWeight")).doubleValue() : null;
         String notes = (String) body.get("notes");
         String supplierId = (String) body.get("supplierId");
-        Date customDate = parseDate((String) body.get("date")); // 👈 nuevo
+        Date customDate = parseDate((String) body.get("date"));
 
         ProductEntry entry = productService.registerEntry(
                 templateId,
                 quantity,
                 weightIds,
-                weights,   // 👈 ahora encaja con ProductService
+                weights,
                 averageWeight,
                 totalWeight,
                 userId,
                 notes,
                 location,
                 supplierId,
-                customDate // 👈 nuevo
+                customDate
         );
 
         if (entry == null) {
@@ -267,6 +268,45 @@ public class ProductController {
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
+    // --- ✅ NEW: Export weights of a specific entry ---
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @GetMapping("/entries/{entryId}/export")
+    public ResponseEntity<byte[]> exportEntryWeights(@PathVariable String entryId) {
+        try {
+            Optional<ProductEntry> entryOpt = productService.getEntryById(entryId);
+            if (entryOpt.isEmpty()) return ResponseEntity.notFound().build();
+
+            ProductEntry entry = entryOpt.get();
+
+            List<ProductWeight> weights = new ArrayList<>();
+            if (entry.getWeights() != null && !entry.getWeights().isEmpty()) {
+                weights = productWeightRepository.findAllById(entry.getWeights());
+            }
+
+            Brand brand = null;
+            Supplier supplier = null;
+
+            if (entry.getBrandId() != null) {
+                brand = productService.getBrandById(entry.getBrandId()).orElse(null);
+            }
+            if (entry.getSupplierId() != null) {
+                supplier = supplierRepository.findById(entry.getSupplierId()).orElse(null);
+            }
+
+            ByteArrayInputStream stream = excelExportService.exportEntryWeightsToExcel(entry, weights, brand, supplier);
+
+            String filename = "weights_" + entry.getProductName().replaceAll("\\s+", "_") + ".xlsx";
+
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=" + filename)
+                    .body(stream.readAllBytes());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     // --- Exits ---
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @PostMapping("/exit/{productId}")
@@ -281,7 +321,7 @@ public class ProductController {
         Double manualWeight = body.get("manualWeight") != null ? ((Number) body.get("manualWeight")).doubleValue() : null;
         List<String> weightIds = (List<String>) body.getOrDefault("weightIds", new ArrayList<>());
         String notes = (String) body.get("notes");
-        Date customDate = parseDate((String) body.get("date")); // 👈 nuevo
+        Date customDate = parseDate((String) body.get("date"));
 
         ProductExit exit = productService.registerExit(
                 productId,
@@ -291,7 +331,7 @@ public class ProductController {
                 userId,
                 notes,
                 location,
-                customDate // 👈 nuevo
+                customDate
         );
 
         if (exit == null) {

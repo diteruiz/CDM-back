@@ -16,7 +16,7 @@ public class ProductEntry {
     private String productName;
     private String brandId;
 
-    // 🔹 Guardar proveedor como referencia y nombre
+    // 🔹 Supplier info
     private String supplierId;
     private String supplierName;
 
@@ -32,10 +32,8 @@ public class ProductEntry {
     private Date enteredAt;
     private String userId;
 
-    // New field for notes (reason, for who, etc.)
+    // Notes and location
     private String notes;
-
-    // 🔹 New field for location (coldstorage1, coldstorage2, warehouse, refrigerators)
     private String location;
 
     // --- Getters & Setters ---
@@ -77,4 +75,16 @@ public class ProductEntry {
 
     public String getLocation() { return location; }
     public void setLocation(String location) { this.location = location; }
+
+    public boolean hasWeights() {
+        return weightIds != null && !weightIds.isEmpty();
+    }
+
+    public String getFormattedDate() {
+        return enteredAt != null ? enteredAt.toString() : "";
+    }
+
+    public List<String> getWeights() {
+        return weightIds;
+    }
 }

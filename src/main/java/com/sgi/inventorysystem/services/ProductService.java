@@ -31,6 +31,9 @@ public class ProductService {
     @Autowired
     private SupplierRepository supplierRepository;
 
+    @Autowired
+    private BrandRepository brandRepository;
+
     // 🔹 Helper to normalize location
     private static String norm(String s) {
         return (s == null) ? null : s.trim().toLowerCase();
@@ -663,5 +666,15 @@ public class ProductService {
         }
 
         return result;
+    }
+
+    // --- ✅ NEW: Get entry by ID (for Excel export) ---
+    public Optional<ProductEntry> getEntryById(String entryId) {
+        return productEntryRepository.findById(entryId);
+    }
+
+    // --- ✅ NEW: Get brand by ID (for Excel export) ---
+    public Optional<Brand> getBrandById(String brandId) {
+        return brandRepository.findById(brandId);
     }
 }
