@@ -393,7 +393,7 @@ public class ProductController {
     @GetMapping("/inventory/summary")
     public ResponseEntity<Map<String, ProductService.LocationSummary>> getInventorySummary() {
         String userId = getUserId();
-        List<String> locations = List.of("coldstorage1", "coldstorage2", "refrigerators", "warehouse");
+        List<String> locations = List.of("coldstorage1", "coldstorage2", "refrigerators", "totems", "warehouse");
         Map<String, ProductService.LocationSummary> summary =
                 productService.getInventorySummary(userId, locations);
         for (ProductService.LocationSummary locSummary : summary.values()) {
