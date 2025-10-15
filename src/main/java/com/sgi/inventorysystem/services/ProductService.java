@@ -34,6 +34,9 @@ public class ProductService {
     @Autowired
     private BrandRepository brandRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository; // 👈 agregado para resolver categorías
+
     // 🔹 Helper to normalize location
     private static String norm(String s) {
         return (s == null) ? null : s.trim().toLowerCase();
@@ -230,7 +233,7 @@ public class ProductService {
             String templateId,
             int quantity,
             List<String> weightIds,
-            List<Number> weights,      // ✅ accept Integer or Double to avoid Jackson cast issues
+            List<Number> weights,
             Double averageWeight,
             Double totalWeight,
             String userId,
@@ -249,11 +252,14 @@ public class ProductService {
         entry.setProductId(product.getId());
         entry.setProductName(product.getName());
         entry.setBrandId(product.getBrandId());
+        entry.setCategoryId(product.getCategoryId()); // ✅ nuevo
+        entry.setCategoryName(
+                categoryRepository.findById(product.getCategoryId())
+                        .map(Category::getName)
+                        .orElse(null)
+        ); // ✅ nuevo
         entry.setUserId(userId);
-
-        // 👇 Use provided date or current
         entry.setEnteredAt(customDate != null ? customDate : new Date());
-
         entry.setNotes(notes);
         entry.setLocation(loc);
 
@@ -272,7 +278,7 @@ public class ProductService {
             }
         }
 
-        // Mode average weight
+        // Modes: average / fixed / variable weights
         if (quantity > 0 && averageWeight != null && totalWeight != null) {
             List<ProductWeight> createdWeights = new ArrayList<>();
             for (int i = 0; i < quantity; i++) {
@@ -284,14 +290,11 @@ public class ProductService {
                 pw.setConsumed(false);
                 createdWeights.add(productWeightRepository.save(pw));
             }
-            List<String> ids = createdWeights.stream().map(ProductWeight::getId).toList();
-
             entry.setQuantityEntered(quantity);
             entry.setTotalWeight(totalWeight);
-            entry.setWeightIds(ids);
+            entry.setWeightIds(createdWeights.stream().map(ProductWeight::getId).toList());
             return productEntryRepository.save(entry);
         }
-
         // Mode fixed weight
         if (product.isHasBaseWeight()) {
             List<ProductWeight> createdWeights = new ArrayList<>();
@@ -304,17 +307,14 @@ public class ProductService {
                 pw.setConsumed(false);
                 createdWeights.add(productWeightRepository.save(pw));
             }
-            List<String> ids = createdWeights.stream().map(ProductWeight::getId).toList();
-
             entry.setQuantityEntered(quantity);
             entry.setTotalWeight(product.getFixedWeight() * quantity);
-            entry.setWeightIds(ids);
+            entry.setWeightIds(createdWeights.stream().map(ProductWeight::getId).toList());
             return productEntryRepository.save(entry);
         }
 
         // Mode box by box
         if (weights != null && !weights.isEmpty()) {
-            // 🔹 Convert safely to Double to avoid ClassCastException (Integer → Double)
             List<Double> safeWeights = weights.stream()
                     .filter(Objects::nonNull)
                     .map(Number::doubleValue)
@@ -330,16 +330,16 @@ public class ProductService {
                 pw.setConsumed(false);
                 createdWeights.add(productWeightRepository.save(pw));
             }
-            List<String> ids = createdWeights.stream().map(ProductWeight::getId).toList();
 
             entry.setQuantityEntered(createdWeights.size());
             entry.setTotalWeight(safeWeights.stream().mapToDouble(Double::doubleValue).sum());
-            entry.setWeightIds(ids);
+            entry.setWeightIds(createdWeights.stream().map(ProductWeight::getId).toList());
             return productEntryRepository.save(entry);
         }
 
         return null;
     }
+
     // --- Exits ---
     public ProductExit registerExit(
             String productId,
@@ -362,14 +362,20 @@ public class ProductService {
         exit.setProductId(product.getId());
         exit.setProductName(product.getName());
         exit.setBrandId(product.getBrandId());
+        exit.setCategoryId(product.getCategoryId()); // ✅ nuevo
+        exit.setCategoryName(
+                categoryRepository.findById(product.getCategoryId())
+                        .map(Category::getName)
+                        .orElse(null)
+        ); // ✅ nuevo
         exit.setUserId(userId);
 
         // 👇 use provided date or current
         exit.setExitedAt(customDate != null ? customDate : new Date());
-
         exit.setNotes(notes);
         exit.setLocation(loc);
 
+        // Supplier
         if (product.getSupplierId() != null) {
             exit.setSupplierId(product.getSupplierId());
             if (product.getSupplierName() == null || product.getSupplierName().isBlank()) {
@@ -380,6 +386,7 @@ public class ProductService {
             }
         }
 
+        // --- Mode fixed weight ---
         if (product.isHasBaseWeight()) {
             List<ProductWeight> available =
                     productWeightRepository.findByProductIdAndUserIdAndLocationAndConsumedFalse(product.getId(), userId, loc);
@@ -397,7 +404,9 @@ public class ProductService {
             productWeightRepository.saveAll(consumed);
             exit.setWeightIds(consumed.stream().map(ProductWeight::getId).toList());
 
-        } else if (manualWeight != null && manualWeight > 0) {
+        }
+        // --- Mode manual weight ---
+        else if (manualWeight != null && manualWeight > 0) {
             exit.setManualWeight(manualWeight);
             exit.setQuantityExited(1);
             exit.setTotalWeight(manualWeight);
@@ -411,7 +420,9 @@ public class ProductService {
                 exit.setWeightIds(List.of(chosen.getId()));
             }
 
-        } else if (weightIds != null && !weightIds.isEmpty()) {
+        }
+        // --- Mode weightIds ---
+        else if (weightIds != null && !weightIds.isEmpty()) {
             List<ProductWeight> toConsume = productWeightRepository.findAllById(weightIds)
                     .stream()
                     .filter(w -> loc.equals(w.getLocation()))
@@ -425,8 +436,8 @@ public class ProductService {
 
             toConsume.forEach(w -> w.setConsumed(true));
             productWeightRepository.saveAll(toConsume);
-
-        } else {
+        }
+        else {
             return null;
         }
 
@@ -485,7 +496,7 @@ public class ProductService {
 
     // --- NEW: Entries by Date ---
     public List<ProductEntry> getEntriesByDate(String userId, String location, String dateStr) {
-        LocalDate date = LocalDate.parse(dateStr); // yyyy-MM-dd
+        LocalDate date = LocalDate.parse(dateStr);
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end = date.plusDays(1).atStartOfDay();
 
@@ -579,7 +590,7 @@ public class ProductService {
                         p.getSupplierId(),
                         supplierName,
                         p.getCategoryId(),
-                        null, // categoryName is filled in controller
+                        null, // categoryName filled in controller
                         totalBoxes,
                         totalWeight
                 ));

@@ -2,7 +2,6 @@ package com.sgi.inventorysystem.models;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.util.Date;
 import java.util.List;
 
@@ -14,9 +13,16 @@ public class ProductExit {
 
     private String productId;
     private String productName;
-    private String brandId;
 
-    // 🔹 Guardar proveedor como referencia y nombre
+    // 🔹 Brand info
+    private String brandId;
+    private String brandName;
+
+    // 🔹 Category info
+    private String categoryId;
+    private String categoryName;
+
+    // 🔹 Supplier info
     private String supplierId;
     private String supplierName;
 
@@ -53,6 +59,15 @@ public class ProductExit {
 
     public String getBrandId() { return brandId; }
     public void setBrandId(String brandId) { this.brandId = brandId; }
+
+    public String getBrandName() { return brandName; }
+    public void setBrandName(String brandName) { this.brandName = brandName; }
+
+    public String getCategoryId() { return categoryId; }
+    public void setCategoryId(String categoryId) { this.categoryId = categoryId; }
+
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 
     public String getSupplierId() { return supplierId; }
     public void setSupplierId(String supplierId) { this.supplierId = supplierId; }

@@ -54,12 +54,10 @@ public class ProductController {
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
-    // 🔹 Helper: normalize strings
     private static String normalize(String s) {
         return (s == null) ? null : s.trim().toLowerCase();
     }
 
-    // 🔹 Helper: parse date (yyyy-MM-dd)
     private static Date parseDate(String dateStr) {
         if (dateStr == null || dateStr.isBlank()) return null;
         try {
@@ -96,13 +94,12 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    // --- GET product by ID with supplierName and categoryName ---
+    // --- GET product by ID ---
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getProductById(@PathVariable String id) {
         Optional<Product> productOpt = productService.getProductById(id);
         if (productOpt.isEmpty()) return ResponseEntity.notFound().build();
-
         return ResponseEntity.ok(buildProductResponse(productOpt.get()));
     }
 
@@ -240,6 +237,7 @@ public class ProductController {
         return ResponseEntity.ok(entry);
     }
 
+    // --- ✅ Entries with brandName fix ---
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/entries")
     public ResponseEntity<List<ProductEntry>> getEntries(
@@ -252,15 +250,26 @@ public class ProductController {
         } else {
             entries = productService.getEntries(getUserId(), loc);
         }
+
         for (ProductEntry e : entries) {
+            // ✅ Supplier name
             if (e.getSupplierId() != null && (e.getSupplierName() == null || e.getSupplierName().isBlank())) {
                 supplierRepository.findById(e.getSupplierId())
                         .ifPresent(s -> e.setSupplierName(s.getName()));
             }
+            // ✅ Brand name
+            if (e.getBrandId() != null && (e.getBrandName() == null || e.getBrandName().isBlank())) {
+                productService.getBrandById(e.getBrandId())
+                        .ifPresent(b -> e.setBrandName(b.getName()));
+            }
+            // ✅ Category name
+            if (e.getCategoryId() != null && (e.getCategoryName() == null || e.getCategoryName().isBlank())) {
+                categoryRepository.findById(e.getCategoryId())
+                        .ifPresent(c -> e.setCategoryName(c.getName()));
+            }
         }
         return ResponseEntity.ok(entries);
     }
-
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @DeleteMapping("/entries/{id}")
     public ResponseEntity<Void> deleteEntry(@PathVariable String id) {
@@ -294,7 +303,6 @@ public class ProductController {
             }
 
             ByteArrayInputStream stream = excelExportService.exportEntryWeightsToExcel(entry, weights, brand, supplier);
-
             String filename = "weights_" + entry.getProductName().replaceAll("\\s+", "_") + ".xlsx";
 
             return ResponseEntity.ok()
@@ -340,6 +348,7 @@ public class ProductController {
         return ResponseEntity.ok(exit);
     }
 
+    // --- ✅ Exits with brandName fix ---
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/exits")
     public ResponseEntity<List<ProductExit>> getExits(
@@ -352,10 +361,22 @@ public class ProductController {
         } else {
             exits = productService.getExits(getUserId(), loc);
         }
+
         for (ProductExit e : exits) {
+            // ✅ Supplier name
             if (e.getSupplierId() != null && (e.getSupplierName() == null || e.getSupplierName().isBlank())) {
                 supplierRepository.findById(e.getSupplierId())
                         .ifPresent(s -> e.setSupplierName(s.getName()));
+            }
+            // ✅ Brand name
+            if (e.getBrandId() != null && (e.getBrandName() == null || e.getBrandName().isBlank())) {
+                productService.getBrandById(e.getBrandId())
+                        .ifPresent(b -> e.setBrandName(b.getName()));
+            }
+            // ✅ Category name
+            if (e.getCategoryId() != null && (e.getCategoryName() == null || e.getCategoryName().isBlank())) {
+                categoryRepository.findById(e.getCategoryId())
+                        .ifPresent(c -> e.setCategoryName(c.getName()));
             }
         }
         return ResponseEntity.ok(exits);
