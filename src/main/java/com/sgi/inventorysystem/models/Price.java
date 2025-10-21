@@ -7,19 +7,21 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Price {
     @Id
     private String id;
-    private String userId;   // to filter by logged user
-    private String clientId; // reference to Client
+    private String userId;
+    private String clientId;
     private String productName;
     private Double price;
+    private Integer order;
 
     // Constructors
     public Price() {}
 
-    public Price(String userId, String clientId, String productName, Double price) {
+    public Price(String userId, String clientId, String productName, Double price, Integer order) {
         this.userId = userId;
         this.clientId = clientId;
         this.productName = productName;
         this.price = price;
+        this.order = order;
     }
 
     // Getters and setters
@@ -61,5 +63,13 @@ public class Price {
 
     public void setPrice(Double price) {
         this.price = price;
+    }
+
+    public Integer getOrder() {
+        return order;
+    }
+
+    public void setOrder(Integer order) {
+        this.order = order;
     }
 }

@@ -19,27 +19,28 @@ public class PriceService {
         return priceRepository.findByUserId(userId);
     }
 
-    // Get prices for a client
+    // Get prices for a specific client
     public List<Price> getPricesByClient(String userId, String clientId) {
         return priceRepository.findByUserIdAndClientId(userId, clientId);
     }
 
-    // Create price
+    // Create new price
     public Price createPrice(Price price) {
         return priceRepository.save(price);
     }
 
-    // Update price
+    // Update existing price (including drag order)
     public Optional<Price> updatePrice(String id, Price updatedPrice) {
         return priceRepository.findById(id).map(price -> {
             price.setProductName(updatedPrice.getProductName());
             price.setPrice(updatedPrice.getPrice());
             price.setClientId(updatedPrice.getClientId());
+            price.setOrder(updatedPrice.getOrder()); // 👈 added
             return priceRepository.save(price);
         });
     }
 
-    // Delete price
+    // Delete a price by ID
     public void deletePrice(String id) {
         priceRepository.deleteById(id);
     }

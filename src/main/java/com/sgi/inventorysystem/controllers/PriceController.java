@@ -27,7 +27,7 @@ public class PriceController {
         return ResponseEntity.ok(priceService.getPrices(userId));
     }
 
-    // Get prices by client
+    // Get prices for a specific client
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @GetMapping("/client/{clientId}")
     public ResponseEntity<List<Price>> getPricesByClient(Principal principal, @PathVariable String clientId) {
@@ -35,7 +35,7 @@ public class PriceController {
         return ResponseEntity.ok(priceService.getPricesByClient(userId, clientId));
     }
 
-    // Create price
+    // Create new price
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PostMapping
     public ResponseEntity<Price> createPrice(@RequestBody Price price, Principal principal) {
@@ -43,7 +43,7 @@ public class PriceController {
         return ResponseEntity.ok(priceService.createPrice(price));
     }
 
-    // Update price
+    // Update existing price (used for edit and reorder)
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @PutMapping("/{id}")
     public ResponseEntity<Price> updatePrice(@PathVariable String id, @RequestBody Price price) {
@@ -51,7 +51,7 @@ public class PriceController {
         return updated.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-    // Delete price
+    // Delete a price
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePrice(@PathVariable String id) {
